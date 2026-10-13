@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Food Delivery System Prototype</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col antialiased">
+
+  <!-- TOP APP BAR -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-sm">
+          <i data-lucide="utensils" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <span class="font-bold text-lg text-slate-800">QuickBite OS</span>
+          <span class="text-xs ml-2 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">Local Prototype V2</span>
+        </div>
+      </div>
+
+      <!-- ACTOR SELECTOR TABS -->
+      <nav class="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs sm:text-sm font-medium">
+        <button onclick="switchRole('customer')" id="tab-customer" class="role-tab px-3 py-1.5 rounded-lg bg-white shadow-sm text-indigo-600 font-semibold transition">Customer</button>
+        <button onclick="switchRole('restaurant')" id="tab-restaurant" class="role-tab px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">Restaurant</button>
+        <button onclick="switchRole('delivery')" id="tab-delivery" class="role-tab px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">Driver</button>
+        <button onclick="switchRole('admin')" id="tab-admin" class="role-tab px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">Admin</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- ================= CUSTOMER PORTAL ================= -->
+    <section id="portal-customer" class="actor-portal space-y-6">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-900">Discover & Order Food</h1>
+          <p class="text-slate-500 text-sm">Select dishes, checkout, and track your active orders.</p>
+        </div>
+        <button onclick="openCartModal()" class="relative inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition shadow-sm">
+          <i data-lucide="shopping-cart" class="w-4 h-4"></i>
+          <span>Cart</span>
+          <span id="cart-badge" class="bg-indigo-800 text-white text-xs px-2 py-0.5 rounded-full font-bold">0</span>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="restaurants-container"></div>
+
+      <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <h2 class="font-bold text-slate-900 flex items-center gap-2">
+            <i data-lucide="clock" class="w-4 h-4 text-indigo-600"></i> My Orders
+          </h2>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-slate-600">
+            <thead class="bg-slate-50 border-b border-slate-200 text-xs font-semibold uppercase text-slate-500">
+              <tr>
+                <th class="px-6 py-3">ID</th>
+                <th class="px-6 py-3">Restaurant</th>
+                <th class="px-6 py-3">Items</th>
+                <th class="px-6 py-3">Total</th>
+                <th class="px-6 py-3">Status</th>
+                <th class="px-6 py-3">Action</th>
+              </tr>
+            </thead>
+            <tbody id="customer-orders-body" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= RESTAURANT PORTAL ================= -->
+    <section id="portal-restaurant" class="actor-portal hidden space-y-6">
+      <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-900">Restaurant Dashboard</h1>
+          <p class="text-slate-500 text-sm">Accept/reject orders and manage your menu.</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <label class="text-sm text-slate-600 font-medium">Select Branch:</label>
+          <select id="restaurant-select" onchange="renderRestaurantPortal()" class="bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500">
+            <!-- Populated via JS -->
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 space-y-4">
+          <h2 class="font-bold text-slate-900 text-lg flex items-center gap-2">
+            <i data-lucide="bell-ring" class="w-5 h-5 text-amber-500"></i> Active Orders
+          </h2>
+          <div id="restaurant-orders-list" class="space-y-3"></div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm h-fit space-y-5">
+          <h2 class="font-bold text-slate-900 text-lg flex items-center gap-2">
+            <i data-lucide="book-open" class="w-5 h-5 text-indigo-600"></i> Manage Menu
+          </h2>
+          <form onsubmit="handleCreateMenuItem(event)" class="space-y-3 pb-4 border-b border-slate-200">
+            <input type="text" id="new-item-name" placeholder="Item Name" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500">
+            <input type="number" step="0.01" id="new-item-price" placeholder="Price (\$)" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500">
+            <button type="submit" class="w-full bg-slate-900 hover:bg-black text-white text-sm font-semibold py-2 rounded-lg transition">Add to Menu</button>
+          </form>
+          <div id="restaurant-menu-list" class="space-y-2 max-h-72 overflow-y-auto"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= DRIVER PORTAL ================= -->
+    <section id="portal-delivery" class="actor-portal hidden space-y-6">
+      <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+        <h1 class="text-2xl font-bold text-slate-900">Driver Console</h1>
+        <p class="text-slate-500 text-sm">Accept ready orders and fulfill deliveries.</p>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="delivery-orders-container"></div>
+    </section>
+
+    <!-- ================= ADMIN PORTAL ================= -->
+    <section id="portal-admin" class="actor-portal hidden space-y-6">
+      <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+        <h1 class="text-2xl font-bold text-slate-900">Admin Analytics & Audit</h1>
+        <p class="text-slate-500 text-sm">System-wide metrics and complete order ledger.</p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-6" id="admin-stats-container"></div>
+
+      <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6">
+        <h3 class="font-bold text-slate-900 mb-4">Complete Audit Ledger</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-slate-600">
+            <thead class="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500">
+              <tr>
+                <th class="px-4 py-2">Order ID</th>
+                <th class="px-4 py-2">Customer</th>
+                <th class="px-4 py-2">Total</th>
+                <th class="px-4 py-2">Payment Status</th>
+                <th class="px-4 py-2">Fulfillment</th>
+              </tr>
+            </thead>
+            <tbody id="admin-orders-table" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ================= MODALS ================= -->
+  <div id="cart-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-lg rounded-2xl shadow-xl flex flex-col max-h-[90vh]">
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+        <h3 class="font-bold text-lg text-slate-800">Your Basket</h3>
+        <button onclick="closeCartModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="p-6 overflow-y-auto space-y-4 flex-1">
+        <div id="cart-items" class="space-y-3"></div>
+        <div class="pt-4 border-t border-slate-200 space-y-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Delivery Address</label>
+            <input type="text" id="checkout-address" value="452 Elm Street, Suite 3B" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+          <div class="flex items-center gap-2 pt-1">
+            <input type="checkbox" id="simulate-failure" class="rounded text-indigo-600 cursor-pointer">
+            <label for="simulate-failure" class="text-xs text-rose-600 font-medium cursor-pointer">Simulate Payment Failure</label>
+          </div>
+        </div>
+      </div>
+      <div class="p-6 bg-slate-50 border-t border-slate-200 flex items-center justify-between rounded-b-2xl">
+        <div>
+          <span class="text-xs text-slate-500 block">Total</span>
+          <span class="text-xl font-bold text-slate-900" id="cart-total">\$0.00</span>
+        </div>
+        <button onclick="submitOrder()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition">
+          Place Order
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="review-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-2xl shadow-xl p-6 space-y-4">
+      <div class="flex justify-between items-center">
+        <h3 class="font-bold text-lg text-slate-900">Rate Order</h3>
+        <button onclick="closeReviewModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <input type="hidden" id="review-order-id">
+      <select id="review-rating" class="w-full border border-slate-300 rounded-lg p-2 text-sm outline-none">
+        <option value="5">⭐⭐⭐⭐⭐ (5/5)</option>
+        <option value="4">⭐⭐⭐⭐ (4/5)</option>
+        <option value="3">⭐⭐⭐ (3/5)</option>
+        <option value="2">⭐⭐ (2/5)</option>
+        <option value="1">⭐ (1/5)</option>
+      </select>
+      <button onclick="submitReview()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl text-sm">Submit Review</button>
+    </div>
+  </div>
+
+  <!-- APPLICATION LOGIC (MOCK BACKEND + FRONTEND) -->
+  <script>
+    // --- LOCAL DATABASE (Expanded Mock Backend) ---
+    let db = {
+      nextOrderId: 1004,
+      restaurants: [
+        {
+          restaurantId: 1, name: 'Bella Italia Trattoria', address: '42 Tuscany Way, Downtown', rating: 4.8,
+          menu: [
+            { itemId: 101, name: 'Margherita Pizza', price: 14.50, available: true },
+            { itemId: 102, name: 'Truffle Pasta Carbonara', price: 18.00, available: true },
+            { itemId: 103, name: 'Garlic Breadsticks', price: 6.50, available: true },
+            { itemId: 104, name: 'Classic Tiramisu', price: 8.50, available: true }
+          ]
+        },
+        {
+          restaurantId: 2, name: 'Tokyo Express Ramen', address: '88 Sakura Blvd, Uptown', rating: 4.7,
+          menu: [
+            { itemId: 201, name: 'Tonkotsu Ramen', price: 15.50, available: true },
+            { itemId: 202, name: 'Spicy Miso Ramen', price: 16.00, available: true },
+            { itemId: 203, name: 'Crispy Pork Gyoza', price: 7.50, available: true },
+            { itemId: 204, name: 'Matcha Boba Tea', price: 5.50, available: false }
+          ]
+        },
+        {
+          restaurantId: 3, name: 'Smash Burger Grill', address: '12 Grill Ave, Westside', rating: 4.5,
+          menu: [
+            { itemId: 301, name: 'Double Smash Burger', price: 12.00, available: true },
+            { itemId: 302, name: 'Spicy Chicken Sandwich', price: 11.50, available: true },
+            { itemId: 303, name: 'Loaded Fries', price: 5.50, available: true },
+            { itemId: 304, name: 'Vanilla Milkshake', price: 4.50, available: true }
+          ]
+        },
+        {
+          restaurantId: 4, name: 'Green Bowl Salads', address: '99 Health St, Eastside', rating: 4.9,
+          menu: [
+            { itemId: 401, name: 'Chicken Caesar Salad', price: 13.00, available: true },
+            { itemId: 402, name: 'Quinoa Veggie Bowl', price: 14.50, available: true },
+            { itemId: 403, name: 'Detox Green Juice', price: 6.00, available: true }
+          ]
+        }
+      ],
+      orders: [
+        { id: 1001, restaurantId: 1, customer: 'John Doe', items: [{itemId: 101, name: 'Margherita Pizza', price: 14.50, qty: 1}, {itemId: 103, name: 'Garlic Breadsticks', price: 6.50, qty: 1}], total: 21.00, status: 'DELIVERED', payment: 'PAID', rating: 5 },
+        { id: 1002, restaurantId: 2, customer: 'Jane Smith', items: [{itemId: 201, name: 'Tonkotsu Ramen', price: 15.50, qty: 2}], total: 31.00, status: 'READY_FOR_PICKUP', payment: 'PAID', rating: null },
+        { id: 1003, restaurantId: 3, customer: 'Alex User', items: [{itemId: 301, name: 'Double Smash Burger', price: 12.00, qty: 1}, {itemId: 303, name: 'Loaded Fries', price: 5.50, qty: 1}], total: 17.50, status: 'PENDING_ACCEPTANCE', payment: 'PAID', rating: null }
+      ]
+    };
+
+    let cart = [];
+    let cartRestaurantId = null;
+    let activeRole = 'customer';
+
+    const badges = {
+      PENDING_ACCEPTANCE: '<span class="px-2 py-1 text-[10px] font-bold rounded bg-amber-100 text-amber-800 uppercase tracking-wider">Pending</span>',
+      PREPARING: '<span class="px-2 py-1 text-[10px] font-bold rounded bg-blue-100 text-blue-800 uppercase tracking-wider">Preparing</span>',
+      READY_FOR_PICKUP: '<span class="px-2 py-1 text-[10px] font-bold rounded bg-purple-100 text-purple-800 uppercase tracking-wider">Ready</span>',
+      OUT_FOR_DELIVERY: '<span class="px-2 py-1 text-[10px] font-bold rounded bg-indigo-100 text-indigo-800 uppercase tracking-wider">On The Way</span>',
+      DELIVERED: '<span class="px-2 py-1 text-[10px] font-bold rounded bg-emerald-100 text-emerald-800 uppercase tracking-wider">Delivered</span>',
+      REJECTED: '<span class="px-2 py-1 text-[10px] font-bold rounded bg-rose-100 text-rose-800 uppercase tracking-wider">Rejected</span>',
+      CANCELLED: '<span class="px-2 py-1 text-[10px] font-bold rounded bg-rose-100 text-rose-800 uppercase tracking-wider">Payment Failed</span>'
+    };
+
+    // Populate Restaurant Dropdown on boot
+    function initDropdowns() {
+      const select = document.getElementById('restaurant-select');
+      select.innerHTML = '';
+      for (const r of db.restaurants) {
+        select.innerHTML += `<option value="${r.restaurantId}">${r.name}</option>`;
+      }
+    }
+    initDropdowns();
+
+    // --- NAVIGATION ---
+    function switchRole(role) {
+      activeRole = role;
+      document.querySelectorAll('.actor-portal').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.role-tab').forEach(el => {
+        el.classList.remove('bg-white', 'text-indigo-600', 'shadow-sm', 'font-semibold');
+        el.classList.add('text-slate-600');
+      });
+      document.getElementById(`portal-${role}`).classList.remove('hidden');
+      const activeTab = document.getElementById(`tab-${role}`);
+      activeTab.classList.add('bg-white', 'text-indigo-600', 'shadow-sm', 'font-semibold');
+      activeTab.classList.remove('text-slate-600');
+
+      renderApp();
+    }
+
+    function renderApp() {
+      if (activeRole === 'customer') renderCustomerPortal();
+      if (activeRole === 'restaurant') renderRestaurantPortal();
+      if (activeRole === 'delivery') renderDriverPortal();
+      if (activeRole === 'admin') renderAdminPortal();
+      lucide.createIcons();
+    }
+
+    // --- CUSTOMER LOGIC ---
+    function renderCustomerPortal() {
+      // Build HTML iteratively to prevent nested backtick evaluation errors
+      const container = document.getElementById('restaurants-container');
+      let html = '';
+
+      for (const r of db.restaurants) {
+        let menuHtml = '';
+        for (const item of r.menu) {
+          const btnClass = item.available ? 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100' : 'bg-slate-100 text-slate-400 cursor-not-allowed';
+          const btnText = item.available ? '+ Add' : 'Sold Out';
+          const disabledAttr = item.available ? '' : 'disabled';
+          
+          menuHtml += `
+            <div class="py-2.5 flex items-center justify-between">
+              <div>
+                <div class="text-sm font-semibold text-slate-800">${item.name}</div>
+                <div class="text-xs text-slate-500">$${item.price.toFixed(2)}</div>
+              </div>
+              <button ${disabledAttr} onclick="addToCart(${r.restaurantId}, ${item.itemId}, '${item.name.replace(/'/g, "\\'")}', ${item.price})" class="px-3 py-1.5 rounded-lg text-xs font-semibold ${btnClass} transition">
+                ${btnText}
+              </button>
+            </div>
+          `;
+        }
+
+        html += `
+          <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden flex flex-col justify-between">
+            <div class="p-6">
+              <div class="flex justify-between items-start mb-1">
+                <h3 class="text-lg font-bold text-slate-900">${r.name}</h3>
+                <span class="text-xs font-bold bg-amber-50 text-amber-700 px-2 py-1 rounded border border-amber-200">${r.rating}★</span>
+              </div>
+              <p class="text-xs text-slate-500 mb-4">${r.address}</p>
+              <div class="divide-y divide-slate-100">
+                ${menuHtml}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      container.innerHTML = html;
+
+      // Render Orders
+      const tbody = document.getElementById('customer-orders-body');
+      let ordersHtml = '';
+      if (db.orders.length === 0) {
+        ordersHtml = `<tr><td colspan="6" class="px-6 py-6 text-center text-slate-400 text-sm">No orders yet.</td></tr>`;
+      } else {
+        for (const o of db.orders) {
+          const rest = db.restaurants.find(r => r.restaurantId === o.restaurantId);
+          let itemsText = '';
+          for (const i of o.items) { itemsText += `${i.qty}x ${i.name}, `; }
+          itemsText = itemsText.slice(0, -2); // remove last comma
+
+          let actionHtml = '-';
+          if (o.status === 'DELIVERED' && !o.rating) actionHtml = `<button onclick="openReview(${o.id})" class="text-xs font-bold text-indigo-600 hover:underline">Rate</button>`;
+          if (o.rating) actionHtml = `<span class="text-xs font-bold text-amber-500">${o.rating}★</span>`;
+
+          ordersHtml += `
+            <tr class="hover:bg-slate-50/60 transition">
+              <td class="px-6 py-3 font-semibold text-slate-800">#${o.id}</td>
+              <td class="px-6 py-3 text-slate-700 font-medium">${rest.name}</td>
+              <td class="px-6 py-3 text-xs text-slate-500">${itemsText}</td>
+              <td class="px-6 py-3 font-semibold text-slate-800">$${o.total.toFixed(2)}</td>
+              <td class="px-6 py-3">${badges[o.status]}</td>
+              <td class="px-6 py-3">${actionHtml}</td>
+            </tr>
+          `;
+        }
+      }
+      tbody.innerHTML = ordersHtml;
+    }
+
+    function addToCart(restId, itemId, name, price) {
+      if (cartRestaurantId && cartRestaurantId !== restId && cart.length > 0) {
+        if (!confirm('Clear cart to order from a new restaurant?')) return;
+        cart = [];
+      }
+      cartRestaurantId = restId;
+      const existing = cart.find(i => i.itemId === itemId);
+      if (existing) existing.qty += 1;
+      else cart.push({ itemId, name, price, qty: 1 });
+      updateCartUI();
+    }
+
+    function updateCartUI() {
+      let totalQty = 0;
+      for (const i of cart) totalQty += i.qty;
+      document.getElementById('cart-badge').innerText = totalQty;
+      
+      const container = document.getElementById('cart-items');
+      if (cart.length === 0) {
+        container.innerHTML = `<p class="text-center text-slate-400 py-6 text-sm">Basket is empty</p>`;
+        document.getElementById('cart-total').innerText = '\$0.00';
+        return;
+      }
+      
+      let sum = 0;
+      let cartHtml = '';
+      for (let idx = 0; idx < cart.length; idx++) {
+        const i = cart[idx];
+        sum += i.price * i.qty;
+        cartHtml += `
+          <div class="flex justify-between items-center bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+            <div>
+              <div class="text-sm font-semibold">${i.name}</div>
+              <div class="text-xs text-slate-500">$${i.price.toFixed(2)}</div>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-bold">x${i.qty}</span>
+              <button onclick="removeFromCart(${idx})" class="text-rose-500 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+            </div>
+          </div>
+        `;
+      }
+      container.innerHTML = cartHtml;
+      document.getElementById('cart-total').innerText = `$${sum.toFixed(2)}`;
+      lucide.createIcons();
+    }
+
+    function removeFromCart(index) {
+      cart.splice(index, 1); 
+      if (cart.length === 0) cartRestaurantId = null; 
+      updateCartUI();
+    }
+
+    function openCartModal() { updateCartUI(); document.getElementById('cart-modal').classList.remove('hidden'); }
+    function closeCartModal() { document.getElementById('cart-modal').classList.add('hidden'); }
+
+    function submitOrder() {
+      if (cart.length === 0) return alert('Cart is empty');
+      const fail = document.getElementById('simulate-failure').checked;
+      let total = 0;
+      for (const i of cart) total += (i.price * i.qty);
+      
+      const order = {
+        id: db.nextOrderId++,
+        restaurantId: cartRestaurantId,
+        customer: 'Alex User',
+        items: [...cart],
+        total: total,
+        status: fail ? 'CANCELLED' : 'PENDING_ACCEPTANCE',
+        payment: fail ? 'FAILED' : 'PAID',
+        rating: null
+      };
+
+      db.orders.unshift(order);
+      cart = []; cartRestaurantId = null;
+      updateCartUI(); closeCartModal(); renderApp();
+      if(fail) alert('Payment failed. Order cancelled.');
+      else alert('Order placed successfully!');
+    }
+
+    // --- RESTAURANT LOGIC ---
+    function renderRestaurantPortal() {
+      const restId = parseInt(document.getElementById('restaurant-select').value);
+      const rest = db.restaurants.find(r => r.restaurantId === restId);
+      
+      // Menu
+      let menuHtml = '';
+      for (const item of rest.menu) {
+        menuHtml += `
+          <div class="flex justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm">
+            <div><span class="font-semibold">${item.name}</span> <span class="text-xs text-slate-500 block">$${item.price.toFixed(2)}</span></div>
+            <button onclick="toggleMenu(${restId}, ${item.itemId})" class="text-xs px-2 py-1 rounded font-semibold ${item.available ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'}">
+              ${item.available ? 'Active' : 'Disabled'}
+            </button>
+          </div>
+        `;
+      }
+      document.getElementById('restaurant-menu-list').innerHTML = menuHtml;
+
+      // Orders
+      let ordersHtml = '';
+      const filteredOrders = db.orders.filter(o => o.restaurantId === restId && o.status !== 'CANCELLED');
+      if (filteredOrders.length === 0) {
+        ordersHtml = `<div class="p-4 border rounded-xl text-sm text-slate-400">No active orders.</div>`;
+      } else {
+        for (const o of filteredOrders) {
+          let itemsText = '';
+          for (const i of o.items) { itemsText += `${i.qty}x ${i.name}, `; }
+          itemsText = itemsText.slice(0, -2);
+
+          let actionButtons = `<span class="text-xs text-slate-400">No action</span>`;
+          if (o.status === 'PENDING_ACCEPTANCE') {
+            actionButtons = `
+              <button onclick="updateOrder(${o.id}, 'PREPARING')" class="px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded">Accept</button>
+              <button onclick="updateOrder(${o.id}, 'REJECTED')" class="px-3 py-1.5 bg-rose-600 text-white text-xs font-bold rounded">Reject</button>
+            `;
+          } else if (o.status === 'PREPARING') {
+            actionButtons = `<button onclick="updateOrder(${o.id}, 'READY_FOR_PICKUP')" class="px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded">Mark Ready</button>`;
+          }
+
+          ordersHtml += `
+            <div class="bg-white p-4 rounded-xl border flex justify-between items-center gap-4">
+              <div>
+                <div class="font-bold text-sm mb-1">Order #${o.id} ${badges[o.status]}</div>
+                <p class="text-xs text-slate-500">${itemsText}</p>
+              </div>
+              <div class="flex gap-2">
+                ${actionButtons}
+              </div>
+            </div>
+          `;
+        }
+      }
+      document.getElementById('restaurant-orders-list').innerHTML = ordersHtml;
+    }
+
+    function toggleMenu(restId, itemId) {
+      const item = db.restaurants.find(r => r.restaurantId === restId).menu.find(i => i.itemId === itemId);
+      item.available = !item.available;
+      renderApp();
+    }
+
+    function handleCreateMenuItem(e) {
+      e.preventDefault();
+      const restId = parseInt(document.getElementById('restaurant-select').value);
+      const name = document.getElementById('new-item-name').value;
+      const price = parseFloat(document.getElementById('new-item-price').value);
+      db.restaurants.find(r => r.restaurantId === restId).menu.push({ itemId: Date.now(), name, price, available: true });
+      document.getElementById('new-item-name').value = '';
+      document.getElementById('new-item-price').value = '';
+      renderApp();
+    }
+
+    // --- DRIVER LOGIC ---
+    function renderDriverPortal() {
+      const active = db.orders.filter(o => ['READY_FOR_PICKUP', 'OUT_FOR_DELIVERY'].includes(o.status));
+      const container = document.getElementById('delivery-orders-container');
+      
+      if (active.length === 0) {
+        container.innerHTML = `<div class="col-span-2 p-8 border rounded-2xl text-center text-slate-400 text-sm">No orders ready for delivery.</div>`;
+        return;
+      }
+      
+      let driverHtml = '';
+      for (const o of active) {
+        const restName = db.restaurants.find(r => r.restaurantId === o.restaurantId).name;
+        let actionBtn = `<button onclick="updateOrder(${o.id}, 'DELIVERED')" class="w-full bg-emerald-600 text-white py-2 rounded-lg text-sm font-bold shadow">Mark Delivered</button>`;
+        if (o.status === 'READY_FOR_PICKUP') {
+          actionBtn = `<button onclick="updateOrder(${o.id}, 'OUT_FOR_DELIVERY')" class="w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-bold shadow">Accept & Pickup</button>`;
+        }
+
+        driverHtml += `
+          <div class="bg-white p-5 rounded-2xl border space-y-4 shadow-sm">
+            <div class="flex justify-between items-start">
+              <span class="font-bold">Order #${o.id}</span>
+              ${badges[o.status]}
+            </div>
+            <div class="text-xs bg-slate-50 p-3 rounded-lg border">
+              <p><strong>Pickup:</strong> ${restName}</p>
+              <p><strong>Dropoff:</strong> Customer Location</p>
+            </div>
+            ${actionBtn}
+          </div>
+        `;
+      }
+      container.innerHTML = driverHtml;
+    }
+
+    // --- ADMIN LOGIC ---
+    function renderAdminPortal() {
+      let revenue = 0;
+      for (const o of db.orders) {
+        if (o.payment === 'PAID' && o.status !== 'REJECTED') revenue += o.total;
+      }
+
+      document.getElementById('admin-stats-container').innerHTML = `
+        <div class="bg-white p-5 rounded-2xl border shadow-sm">
+          <div class="text-xs text-slate-500 font-bold uppercase">Total Revenue</div>
+          <div class="text-2xl font-bold text-slate-900">$${revenue.toFixed(2)}</div>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border shadow-sm">
+          <div class="text-xs text-slate-500 font-bold uppercase">Total Orders</div>
+          <div class="text-2xl font-bold text-slate-900">${db.orders.length}</div>
+        </div>
+      `;
+
+      let adminHtml = '';
+      for (const o of db.orders) {
+        const paymentColor = o.payment === 'PAID' ? 'text-emerald-600' : 'text-rose-600';
+        adminHtml += `
+          <tr>
+            <td class="px-4 py-3 font-semibold">#${o.id}</td>
+            <td class="px-4 py-3 text-sm">${o.customer}</td>
+            <td class="px-4 py-3 font-semibold">$${o.total.toFixed(2)}</td>
+            <td class="px-4 py-3"><span class="text-xs font-bold ${paymentColor}">${o.payment}</span></td>
+            <td class="px-4 py-3">${badges[o.status]}</td>
+          </tr>
+        `;
+      }
+      document.getElementById('admin-orders-table').innerHTML = adminHtml;
+    }
+
+    // --- SHARED ACTIONS ---
+    function updateOrder(id, status) {
+      const order = db.orders.find(o => o.id === id);
+      order.status = status;
+      if (status === 'REJECTED') order.payment = 'REFUNDED';
+      renderApp();
+    }
+
+    function openReview(id) { document.getElementById('review-order-id').value = id; document.getElementById('review-modal').classList.remove('hidden'); }
+    function closeReviewModal() { document.getElementById('review-modal').classList.add('hidden'); }
+    function submitReview() {
+      const id = parseInt(document.getElementById('review-order-id').value);
+      const rating = document.getElementById('review-rating').value;
+      db.orders.find(o => o.id === id).rating = rating;
+      closeReviewModal(); renderApp();
+    }
+
+    // Init
+    renderApp();
+  </script>
+</body>
+</html>
